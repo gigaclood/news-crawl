@@ -87,7 +87,7 @@ RUN mkdir news-crawler/ && \
 ADD target/crawler-$CRAWLER_VERSION.jar news-crawler/lib/crawler.jar
 # and configuration files
 ADD conf/*.*        news-crawler/conf/
-ADD seeds/*.txt     news-crawler/seeds/
+ADD seeds/*.txt     news-crawler/
 ADD bin/*.sh        news-crawler/bin/
 ADD bin/es_status   news-crawler/bin/
 

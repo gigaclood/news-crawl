@@ -1,8 +1,5 @@
-# modified version of
-#  https://github.com/DigitalPebble/storm-crawler/blob/master/external/elasticsearch/ES_IndexInit.sh
-
 ESHOST="http://localhost:9200"
-#ESCREDENTIALS="-u elastic:passwordhere"
+ESCREDENTIALS="-u elastic:passwordhere"
 
 # deletes and recreates a status index with a bespoke schema
 
@@ -18,7 +15,7 @@ curl $ESCREDENTIALS -s -XPUT $ESHOST/status -H 'Content-Type: application/json' 
 {
 	"settings": {
 		"index": {
-			"number_of_shards": 16,
+			"number_of_shards": 10,
 			"number_of_replicas": 1,
 			"refresh_interval": "5s"
 		}
@@ -37,6 +34,10 @@ curl $ESCREDENTIALS -s -XPUT $ESHOST/status -H 'Content-Type: application/json' 
 				"enabled": true
 			},
 			"properties": {
+				"key": {
+					"type": "keyword",
+					"index": true
+				},
 				"nextFetchDate": {
 					"type": "date",
 					"format": "dateOptionalTime"
@@ -58,12 +59,12 @@ curl $ESCREDENTIALS -s -XDELETE "$ESHOST/metrics*/" >  /dev/null
 echo ""
 echo "Deleted metrics index"
 
-curl $ESCREDENTIALS -s -XPUT $ESHOST/_ilm/policy/14d-deletion_policy -H 'Content-Type:application/json' -d '
+curl $ESCREDENTIALS -s -XPUT $ESHOST/_ilm/policy/7d-deletion_policy -H 'Content-Type:application/json' -d '
 {
     "policy": {
         "phases": {
             "delete": {
-                "min_age": "14d",
+                "min_age": "7d",
                 "actions": {
                     "delete": {}
                 }
@@ -85,7 +86,7 @@ curl $ESCREDENTIALS -s -XPOST $ESHOST/_template/storm-metrics-template -H 'Conte
       "refresh_interval": "30s"
     },
     "number_of_replicas": 0,
-    "lifecycle.name": "14d-deletion_policy"
+    "lifecycle.name": "7d-deletion_policy"
   },
   "mappings": {
       "_source":         { "enabled": true },
@@ -117,5 +118,62 @@ curl $ESCREDENTIALS -s -XPOST $ESHOST/_template/storm-metrics-template -H 'Conte
           }
       }
   }
+}'
+
+# deletes and recreates a doc index with a bespoke schema
+
+curl $ESCREDENTIALS -s -XDELETE "$ESHOST/content*/" >  /dev/null
+
+echo ""
+echo "Deleted content index"
+
+echo "Creating content index with mapping"
+
+curl $ESCREDENTIALS -s -XPUT $ESHOST/content -H 'Content-Type: application/json' -d '
+{
+	"settings": {
+		"index": {
+			"number_of_shards": 5,
+			"number_of_replicas": 1,
+			"refresh_interval": "60s"
+		}
+	},
+	"mappings": {
+			"_source": {
+				"enabled": true
+			},
+			"properties": {
+				"content": {
+					"type": "text",
+					"index": "true",
+					"store":"true"
+				},
+				"host": {
+					"type": "keyword",
+					"index": "true",
+					"store": true
+				},
+				"title": {
+					"type": "text",
+					"index": "true",
+					"store": true
+				},
+				"url": {
+					"type": "keyword",
+					"index": "false",
+					"store": true
+				},
+				"domain": {
+					"type": "keyword",
+					"index": "false",
+					"store": true
+				},
+				"keywords": {
+					"type": "keyword",
+					"index": "true",
+					"store": true
+				}
+			}
+	}
 }'
 
